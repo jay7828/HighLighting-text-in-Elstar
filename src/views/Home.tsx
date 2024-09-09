@@ -1,4 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 // Data From the data.json file
 import jsonData from './data.json';
@@ -36,7 +39,7 @@ type SummaryData = {
 const Home: React.FC = () => {
   // State to hold the loaded JSON data
   const [patientsData, setPatientsData] = useState<DischargeSummary[]>([]);
-  
+
   // Refs for input and output scrolls, organized by patient index
   const inputRefs = useRef<{ [patientIndex: number]: { [key: string]: HTMLElement | null } }>({});
   const outputRefs = useRef<{ [patientIndex: number]: { [key: string]: HTMLElement | null } }>({});
@@ -46,13 +49,7 @@ const Home: React.FC = () => {
     setPatientsData(jsonData.data[0].get_summary_data);
   }, []);
 
-  // Initialize refs for a specific patient
-  const initializeRefs = (patientIndex: number) => {
-    inputRefs.current[patientIndex] = {};
-    outputRefs.current[patientIndex] = {};
-  };
-
-  // Handle scroll for a particular sentence/word
+  // Handle scroll for a particular highlighted phrase
   const handleOutputClick = (patientIndex: number, phrase: string) => {
     const inputElement = inputRefs.current[patientIndex]?.[phrase];
     if (inputElement) {
@@ -63,15 +60,15 @@ const Home: React.FC = () => {
   return (
     <div>
       {patientsData.map((patient, index) => {
-        const highlightedPhrases = [
-          'worsening abdominal pain',
-          'hydroxyurea',
-          'fatigue'
-        ]; // Customize this list as needed
         const patientName = `${patient.first_name ?? ''} ${patient.last_name ?? ''}`;
 
-        // Initialize refs for this patient
-        initializeRefs(index);
+        // Ensure refs are initialized for this patient
+        if (!inputRefs.current[index]) {
+          inputRefs.current[index] = {};
+        }
+        if (!outputRefs.current[index]) {
+          outputRefs.current[index] = {};
+        }
 
         return (
           <div key={index} style={{ marginBottom: '50px' }}>
@@ -88,25 +85,28 @@ const Home: React.FC = () => {
                   padding: '10px',
                 }}
               >
-                {patient.data[0].notes.split(' ').map((word, wordIndex) => {
-                  const key = highlightedPhrases.find(phrase =>
-                    phrase.split(' ').some(w => w === word)
-                  );
+                <ReactMarkdown
+                  children={patient.data[0]?.notes || ''}
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw as any]}  // Enable inline HTML rendering
+                  components={{
+                    span: ({ node, ...props }) => {
+                      const style = (node.properties?.style as string) || '';
+                      const isHighlighted = style.includes('background-color:yellow');
+                      const phrase = props.children?.toString() || '';
 
-                  return key ? (
-                    <span
-                      key={`${word}-${wordIndex}`}
-                      ref={(el) => {
-                        if (el) inputRefs.current[index][key] = el;
-                      }}
-                      style={{ backgroundColor: 'yellow' }}
-                    >
-                      {word}{' '}
-                    </span>
-                  ) : (
-                    `${word} `
-                  );
-                })}
+                      return (
+                        <span
+                          {...props}
+                          ref={(el) => {
+                            if (el && isHighlighted) inputRefs.current[index][phrase] = el;
+                          }}
+                          style={{ backgroundColor: isHighlighted ? 'yellow' : undefined }}
+                        />
+                      );
+                    }
+                  }}
+                />
               </div>
 
               {/* Output Box (Summary) */}
@@ -119,29 +119,32 @@ const Home: React.FC = () => {
                   padding: '10px',
                 }}
               >
-                {patient.data[0].summary.split(' ').map((word, wordIndex) => {
-                  const key = highlightedPhrases.find(phrase =>
-                    phrase.split(' ').some(w => w === word)
-                  );
+                <ReactMarkdown
+                  children={patient.data[0]?.summary || ''}
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw as any]}  // Enable inline HTML rendering
+                  components={{
+                    span: ({ node, ...props }) => {
+                      const style = (node.properties?.style as string) || '';
+                      const isHighlighted = style.includes('background-color:yellow');
+                      const phrase = props.children?.toString() || '';
 
-                  return key ? (
-                    <span
-                      key={`${word}-${wordIndex}`}
-                      ref={(el) => {
-                        if (el) outputRefs.current[index][key] = el;
-                      }}
-                      style={{
-                        backgroundColor: 'lightblue',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => handleOutputClick(index, key)}
-                    >
-                      {word}{' '}
-                    </span>
-                  ) : (
-                    `${word} `
-                  );
-                })}
+                      return (
+                        <span
+                          {...props}
+                          ref={(el) => {
+                            if (el && isHighlighted) outputRefs.current[index][phrase] = el;
+                          }}
+                          style={{
+                            backgroundColor: isHighlighted ? 'lightblue' : undefined,
+                            cursor: isHighlighted ? 'pointer' : 'default',
+                          }}
+                          onClick={() => isHighlighted && handleOutputClick(index, phrase)}
+                        />
+                      );
+                    }
+                  }}
+                />
               </div>
             </div>
           </div>
