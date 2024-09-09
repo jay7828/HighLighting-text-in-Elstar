@@ -44,17 +44,28 @@ const Home: React.FC = () => {
   const inputRefs = useRef<{ [patientIndex: number]: { [key: string]: HTMLElement | null } }>({});
   const outputRefs = useRef<{ [patientIndex: number]: { [key: string]: HTMLElement | null } }>({});
 
+  // State to temporarily highlight the clicked word
+  const [highlightedWord, setHighlightedWord] = useState<{ [key: number]: string | null }>({});
+
   // Load the JSON data 
   useEffect(() => {
     setPatientsData(jsonData.data[0].get_summary_data);
   }, []);
 
-  // Handle scroll for a particular highlighted phrase
+  // Handle scroll for a particular highlighted phrase and temporarily highlight the clicked word
   const handleOutputClick = (patientIndex: number, phrase: string) => {
     const inputElement = inputRefs.current[patientIndex]?.[phrase];
     if (inputElement) {
       inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+
+    // Temporarily highlight the clicked word
+    setHighlightedWord(prev => ({ ...prev, [patientIndex]: phrase }));
+
+    // Remove the highlight after 2 seconds
+    setTimeout(() => {
+      setHighlightedWord(prev => ({ ...prev, [patientIndex]: null }));
+    }, 2000);
   };
 
   return (
@@ -94,6 +105,7 @@ const Home: React.FC = () => {
                       const style = (node.properties?.style as string) || '';
                       const isHighlighted = style.includes('background-color:yellow');
                       const phrase = props.children?.toString() || '';
+                      const isTemporarilyHighlighted = highlightedWord[index] === phrase;
 
                       return (
                         <span
@@ -101,7 +113,9 @@ const Home: React.FC = () => {
                           ref={(el) => {
                             if (el && isHighlighted) inputRefs.current[index][phrase] = el;
                           }}
-                          style={{ backgroundColor: isHighlighted ? 'yellow' : undefined }}
+                          style={{
+                            backgroundColor: isHighlighted ? (isTemporarilyHighlighted ? 'orange' : 'yellow') : undefined
+                          }}
                         />
                       );
                     }
@@ -128,6 +142,7 @@ const Home: React.FC = () => {
                       const style = (node.properties?.style as string) || '';
                       const isHighlighted = style.includes('background-color:yellow');
                       const phrase = props.children?.toString() || '';
+                      const isTemporarilyHighlighted = highlightedWord[index] === phrase;
 
                       return (
                         <span
@@ -136,7 +151,7 @@ const Home: React.FC = () => {
                             if (el && isHighlighted) outputRefs.current[index][phrase] = el;
                           }}
                           style={{
-                            backgroundColor: isHighlighted ? 'lightblue' : undefined,
+                            backgroundColor: isHighlighted ? (isTemporarilyHighlighted ? 'orange' : 'lightblue') : undefined,
                             cursor: isHighlighted ? 'pointer' : 'default',
                           }}
                           onClick={() => isHighlighted && handleOutputClick(index, phrase)}
