@@ -76,10 +76,13 @@ const SignInForm = (props: SignInFormProps) => {
       } else {
         // const result = await navsignIn(userName, 'someResValue');
         console.log("Login Successful");
-        dispatch(signInSuccess(userName))
+        dispatch(signInSuccess(userName)) 
         dispatch(
             setUser({
-                userName:userName
+                userName: userName, 
+                email: userName,
+                avatar: '',
+                authority: ['USER'], 
             })
         )
         navigate(

@@ -11,6 +11,7 @@ import { REDIRECT_URL_KEY } from '@/constants/app.constant'
 import { useNavigate } from 'react-router-dom'
 import useQuery from './useQuery'
 import type { SignInCredential, SignUpCredential } from '@/@types/auth'
+import { signOut } from '@aws-amplify/auth'
 
 type Status = 'success' | 'failed'
 
@@ -103,7 +104,7 @@ function useAuth() {
         }
     }
 
-    const handleSignOut = () => {
+    const handleSignOut = async () => {
         dispatch(signOutSuccess())
         dispatch(
             setUser({
@@ -116,8 +117,8 @@ function useAuth() {
         navigate(appConfig.unAuthenticatedEntryPath)
     }
 
-    const signOut = async () => {
-        await apiSignOut()
+    const signOutAuth = async () => {
+        await signOut()
         handleSignOut()
     }
 
@@ -125,7 +126,7 @@ function useAuth() {
         authenticated: token && signedIn,
         signIn,
         signUp,
-        signOut,
+        signOutAuth,
     }
 }
 
